@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-animated-pagination-dot/src/component/Dot.tsx b/node_modules/react-native-animated-pagination-dot/src/component/Dot.tsx
+index b4184fa..f5dbd6b 100644
+--- a/node_modules/react-native-animated-pagination-dot/src/component/Dot.tsx
++++ b/node_modules/react-native-animated-pagination-dot/src/component/Dot.tsx
+@@ -106,7 +106,7 @@ const Dot: React.FC<{
+       }),
+       opacity: animVal.interpolate({
+         inputRange: [0, 1],
+-        outputRange: [prevType?.opacity || 0.2, type.opacity],
++        outputRange: [1,1]// [prevType?.opacity || 0.2, type.opacity],
+       }),
+     };
+   }, [
