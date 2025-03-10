@@ -32,6 +32,15 @@ export default function StackNavigation() {
     },
   };
 
+  const linking = {
+    prefixes: ['gimmzi://','https://staging.gimmzi.com/'],
+    config: {
+      screens: {
+        RewardDetails: 'reward/:id/location/:locationId'
+      },
+    },
+  };
+
   const AuthScreens = {
     SignIn: SignIn,
     SignIn2: SignIn2,
@@ -62,7 +71,7 @@ export default function StackNavigation() {
     return <Splash />;
   } else {
     return (
-      <NavigationContainer ref={navigationRef} theme={theme}>
+      <NavigationContainer ref={navigationRef} theme={theme} linking={linking}>
         <Stack.Navigator screenOptions={{headerShown: false}}>
           {Object.entries({
             ...Screens,

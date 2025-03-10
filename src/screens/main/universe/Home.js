@@ -12,6 +12,7 @@ import {
   Dimensions,
   Keyboard,
   RefreshControl,
+  Linking,
 } from 'react-native';
 import React, {
   useCallback,
@@ -71,6 +72,7 @@ import {
   setIndexOfDeals,
   setSelectCategory,
 } from '../../../redux/slice/universe.slice';
+import queryString from 'query-string';
 
 const {height} = Dimensions.get('window');
 
@@ -99,6 +101,46 @@ const Home = props => {
   const [location, setLocation] = useState([]);
   const isLoggedIn = authState.isLoggedIn;
   console.log('location', location);
+
+  const handleDeepLink = (url) => {
+    try {
+      console.log('url--->', url);
+      // Check if the URL starts with the expected prefix
+      if (url.startsWith('https://staging.gimmzi.com/')) {
+        // Extract the path and query parameters manually
+        const urlParts = url.split('?');
+        const queryStringPart = urlParts[1]; // e.g., "id=182&location=244"
+        // Use query-string to parse the query parameters
+        const parsedParams = queryString.parse(queryStringPart);
+        const id = parsedParams.id;
+        const locationId = parsedParams.location;
+        if (id && locationId) {
+          navigation.navigate('RewardDetails', { id, locationId });
+        } else {
+          console.error('Invalid URL or missing parameters');
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing deep link URL:', e);
+    }
+  };
+
+  React.useEffect(() => {
+    // Add event listener to handle incoming deep links
+    const linkingListener = Linking.addEventListener('url', ({ url }) => handleDeepLink(url));
+
+    // Check if the app was opened with a deep link (for app launch)
+    Linking.getInitialURL().then(url => {
+      if (url) {
+        handleDeepLink(url);
+      }
+    });
+
+    // Cleanup the event listener when the component unmounts
+    return () => {
+      linkingListener.remove();
+    };
+  }, [navigation]);
 
   // const onRefresh = React.useCallback(() => {
   //   setRefreshing(true);

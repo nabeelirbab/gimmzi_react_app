@@ -20,7 +20,7 @@ import React, {
   useState,
 } from 'react';
 import normalize from '../../../utils/orientation/normalize';
-import {Colors, Fonts, Icons, Images} from '../../../themes/Themes';
+import { Colors, Fonts, Icons, Images } from '../../../themes/Themes';
 import GridImageViewer from '../../../components/imageViewer/GridImageViewer';
 import Button from '../../../components/button/Button';
 import {
@@ -34,15 +34,15 @@ import MapView, {
 } from 'react-native-maps';
 import _ from 'lodash';
 import CustomBottomView from '../../../components/custom/CustomBottomView';
-import {useFocusEffect} from '@react-navigation/native';
-import {showMessage} from '../../../utils/helper/Toast';
-import {useAppDispatch, useAppSelector} from '../../../redux';
+import { useFocusEffect } from '@react-navigation/native';
+import { showMessage } from '../../../utils/helper/Toast';
+import { useAppDispatch } from '../../../redux';
 import {
   addFavourite,
   getUniverseBusinessDetails,
 } from '../../../utils/service/UniverseService';
 import Loader from '../../../components/custom/Loader';
-import {GimmziContext} from '../../../utils/helper/GimmziBoundary';
+import { GimmziContext } from '../../../utils/helper/GimmziBoundary';
 import CustomModal from '../../../components/modal/CustomModal';
 import CustomScrollView from '../../../components/custom/CustomScrollView';
 import {
@@ -50,17 +50,19 @@ import {
   moderateScale,
   verticalScale,
 } from '../../../utils/orientation/scaleDimensions';
-import {addWallet} from '../../../utils/service/WalletService';
-import {isArray} from '../../../utils/helper/Validation';
+import { addWallet } from '../../../utils/service/WalletService';
+import { isArray } from '../../../utils/helper/Validation';
 import WebView from 'react-native-webview';
 import RenderHTML from 'react-native-render-html';
 import SwipeCard from './components/SwipeCard';
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+import ViewShot from 'react-native-view-shot';
+import Share from 'react-native-share';
 
-const RewardDetails = ({route}) => {
-  const {id, locationId} = route?.params;
-  const authState = useAppSelector(state => state.auth);
-  const isLoggedIn = authState.isLoggedIn;
+const RewardDetails = ({ route }) => {
+  const { id, locationId } = route?.params;
+  console.log('deep linking test', route?.params)
+
   const context = useContext(GimmziContext);
   const mapRef = useRef();
   const dispatch = useAppDispatch();
@@ -75,6 +77,7 @@ const RewardDetails = ({route}) => {
     business_story: '',
     about: [],
     images: [],
+    business_name: '',
   });
   const [coords, setCoords] = useState({
     latitude: 33.78879434717973,
@@ -84,45 +87,27 @@ const RewardDetails = ({route}) => {
   });
   const animatedCoords = useRef(new AnimatedRegion(coords)).current;
   const [options, setOptions] = useState([]);
+  const viewShotRef = useRef();
   const [showLocationIndex, setShowLocationIndex] = useState(1);
   const [isVisible, setIsVisible] = useState({
     selectedItem: {},
     status: false,
   });
-  const [location,setLocation]=useState([])
-  console.log("location",route?.params,location);
-  
 
   /* on start */
   useFocusEffect(
     useCallback(() => {
       StatusBar.setBarStyle('light-content');
       StatusBar.setBackgroundColor('transparent');
-      if(isLoggedIn){
-        getBusinessDetails(id, locationId);
-      }else{
-        getLiveLocation()
-      }
-     
+      getBusinessDetails(id, locationId);
     }, []),
   );
-
-
-  const getLiveLocation = useCallback(async () => {
-    console.log('getLiveLocation  -  -- - ');
-
-    await context.getCurrentLocation(async coords => {
-      console.log('coords', coords);
-      setLocation(coords);
-      getBusinessDetailsWithLocation(id, locationId,coords);
-
-    });
-  }, [context]);
+  console.log('businessInfo--->', businessInfo)
 
   function removeHtmlTags(input) {
     return input?.replace(/<[^>]+>/g, '') || '';
   }
-  
+
 
   const getBusinessDetails = useCallback(async (_id, _locationId) => {
     console.log('getBusinessDetailsgetBusinessDetails - - ', _id, _locationId);
@@ -134,7 +119,7 @@ const RewardDetails = ({route}) => {
         location_id: _locationId,
       }),
     );
-console.log("result businessdetails",result);
+    console.log("result businessdetails", result);
 
     setIsLoading(false);
     if (!result?.success) {
@@ -144,9 +129,9 @@ console.log("result businessdetails",result);
     if (result?.data) {
       const _details = result?.data?.business_profiles;
       const _deals =
-        _details?.deals?.map(item => ({...item, type: 'deal'})) || [];
+        _details?.deals?.map(item => ({ ...item, type: 'deal' })) || [];
       const _loyalty =
-        _details?.loyalty?.map(item => ({...item, type: 'loyalty'})) || [];
+        _details?.loyalty?.map(item => ({ ...item, type: 'loyalty' })) || [];
       const headquarter = result?.data?.all_locations?.find(
         item => item?.location_type == 'Headquarters',
       );
@@ -154,23 +139,24 @@ console.log("result businessdetails",result);
       const about = [
         {
           label: 'Overview',
-          desc: removeHtmlTags(_details?.business_overview),
+          // desc: removeHtmlTags(_details?.business_overview),
+          desc: _details?.business_overview,
           subTopics:
             merchant_board?.status === 1
               ? [
-                  {
-                    label: merchant_board?.board_one_title,
-                    desc: merchant_board?.description,
-                    type: 'special',
-                    isVisible: merchant_board?.display_board_id,
-                  },
-                  {
-                    label: merchant_board?.board_two_title,
-                    desc: merchant_board?.description2,
-                    type: 'special',
-                    isVisible: merchant_board?.display_board_id2,
-                  },
-                ]
+                {
+                  label: merchant_board?.board_one_title,
+                  desc: merchant_board?.description,
+                  type: 'special',
+                  isVisible: merchant_board?.display_board_id,
+                },
+                {
+                  label: merchant_board?.board_two_title,
+                  desc: merchant_board?.description2,
+                  type: 'special',
+                  isVisible: merchant_board?.display_board_id2,
+                },
+              ]
               : [],
         },
       ];
@@ -179,10 +165,11 @@ console.log("result businessdetails",result);
         image: _details?.story_image_url
           ? _details?.story_image_url
           : undefined,
-        subTitle: removeHtmlTags(_details?.business_story),
+        // subTitle: removeHtmlTags(_details?.business_story),
+        subTitle: _details?.business_story,
         topics: [],
       };
-      const mergedLocation=[...result?.data?.all_locations,result?.data?.business_profiles?.main_location]
+      const mergedLocation = [...result?.data?.all_locations, result?.data?.business_profiles?.main_location]
       let obj = {
         locations: mergedLocation,
         distance: _details?.selected_location_distance,
@@ -191,99 +178,10 @@ console.log("result businessdetails",result);
         business_phone: _details?.business_phone,
         business_story: story,
         about: about,
+        business_name: _details?.business_name,
         images: isArray(_details?.multiple_images)
-          ?_details?.multiple_images?.length>0? _details?.multiple_images
-          : [_details?.main_image_url]:[],
-      };
-      setBusinessInfo(obj);
-      setOptions([..._deals, ..._loyalty]);
-      if (!_.isEmpty(result?.data?.all_locations)) {
-        setTimeout(
-          () => {
-            setCoords({
-              latitude: parseFloat(result?.data?.all_locations[0]?.latitude),
-              longitude: parseFloat(result?.data?.all_locations[0]?.longitude),
-              latitudeDelta: 0.003,
-              longitudeDelta: 0.003,
-            });
-          },
-          Platform.OS == 'android' ? 2000 : 1000,
-        );
-      }
-    }
-  }, []);
-  const getBusinessDetailsWithLocation = useCallback(async (_id, _locationId,_coords) => {
-    console.log('getBusinessDetailsgetBusinessDetails - - ', _id, _locationId);
-
-    setIsLoading(true);
-    const result = await dispatch(
-      getUniverseBusinessDetails({
-        business_id: _id,
-        location_id: _locationId,
-        lat:_coords? _coords?.latitude: location?.latitude,
-        long:_coords? _coords?.longitude: location?.longitude,
-      }),
-    );
-console.log("result businessdetails",result);
-
-    setIsLoading(false);
-    if (!result?.success) {
-      showMessage(result.message);
-      return null;
-    }
-    if (result?.data) {
-      const _details = result?.data?.business_profiles;
-      const _deals =
-        _details?.deals?.map(item => ({...item, type: 'deal'})) || [];
-      const _loyalty =
-        _details?.loyalty?.map(item => ({...item, type: 'loyalty'})) || [];
-      const headquarter = result?.data?.all_locations?.find(
-        item => item?.location_type == 'Headquarters',
-      );
-      let merchant_board = _details?.merchant_board[0];
-      const about = [
-        {
-          label: 'Overview',
-          desc: removeHtmlTags(_details?.business_overview),
-          subTopics:
-            merchant_board?.status === 1
-              ? [
-                  {
-                    label: merchant_board?.board_one_title,
-                    desc: merchant_board?.description,
-                    type: 'special',
-                    isVisible: merchant_board?.display_board_id,
-                  },
-                  {
-                    label: merchant_board?.board_two_title,
-                    desc: merchant_board?.description2,
-                    type: 'special',
-                    isVisible: merchant_board?.display_board_id2,
-                  },
-                ]
-              : [],
-        },
-      ];
-      const story = {
-        title: 'Our Story',
-        image: _details?.story_image_url
-          ? _details?.story_image_url
-          : undefined,
-        subTitle: removeHtmlTags(_details?.business_story),
-        topics: [],
-      };
-      const mergedLocation=[...result?.data?.all_locations,result?.data?.business_profiles?.main_location]
-      let obj = {
-        locations: mergedLocation,
-        distance: _details?.selected_location_distance,
-        details: _details,
-        business_page_link: _details?.business_page_link,
-        business_phone: _details?.business_phone,
-        business_story: story,
-        about: about,
-        images: isArray(_details?.multiple_images)
-          ?_details?.multiple_images?.length>0? _details?.multiple_images
-          : [_details?.main_image_url]:[],
+          ? _details?.multiple_images?.length > 0 ? _details?.multiple_images
+            : [_details?.main_image_url] : [],
       };
       setBusinessInfo(obj);
       setOptions([..._deals, ..._loyalty]);
@@ -303,11 +201,54 @@ console.log("result businessdetails",result);
     }
   }, []);
 
-  const Topic = ({label, desc, subTopics = []}) => {
+  const Topic = ({ label, desc, subTopics = [] }) => {
     return (
       <View style={styles.v4}>
         <Text style={styles.title4}>{label}</Text>
-        {desc && <Text style={styles.description}>{desc}</Text>}
+        {/* {desc && <Text style={styles.description}>{desc}</Text>} */}
+        <RenderHTML
+          // contentWidth={width}
+          source={{
+            html: `${desc}`,
+          }}
+          renderers={{
+            webview: WebView,
+          }}
+          // renderersProps={{
+          //   ul: {
+          //     ol: {marginLeft: 15, listStyleType: 'decimal'},
+          //     ul: {marginLeft: 15, listStyleType: 'disc'},
+          //   },
+          // }}
+          tagsStyles={{
+            li: {
+              fontSize: 14,
+              fontFamily: 'Arial',
+              // listStyleType: 'disc', // Ensure list dot shows up
+              lineHeight: 20,
+
+              color: 'black'// Increase line height for readability
+            },
+            span: {
+              textAlign: 'justify',
+              lineHeight: 20,
+              color: 'black' // Uniform line height
+            },
+            p: {
+              fontFamily: 'Open Sans',
+              fontSize: 14,
+              textAlign: 'justify',
+              lineHeight: 20,
+              color: 'black'
+              // Add line height for proper spacing
+            },
+            b: {
+              fontWeight: 'bold',
+              fontFamily: 'Arial',
+              color: 'black' // Ensure bold style matches
+            },
+          }}
+        />
         {subTopics?.length > 0 &&
           subTopics?.map((subTopic, subTopicIndex) => {
             return (
@@ -327,17 +268,17 @@ console.log("result businessdetails",result);
     );
   };
 
-  const SubTopic = ({label, desc, type = 'ordinary'}) => {
+  const SubTopic = ({ label, desc, type = 'ordinary' }) => {
     return (
       <View
         style={[
           styles.subTopicContainer,
-          type && type !== 'ordinary' && {backgroundColor: Colors.water},
+          type && type !== 'ordinary' && { backgroundColor: Colors.water },
         ]}>
         <Text
           style={[
             styles.title5,
-            type && type !== 'ordinary' && {color: Colors.green},
+            type && type !== 'ordinary' && { color: Colors.green },
           ]}>
           {label}
         </Text>
@@ -361,26 +302,26 @@ console.log("result businessdetails",result);
               fontFamily: 'Arial',
               // listStyleType: 'disc', // Ensure list dot shows up
               lineHeight: 20,
-              
-              color:'black'// Increase line height for readability
+
+              color: 'black'// Increase line height for readability
             },
             span: {
               textAlign: 'justify',
               lineHeight: 20,
-              color:'black' // Uniform line height
+              color: 'black' // Uniform line height
             },
             p: {
               fontFamily: 'Open Sans',
               fontSize: 14,
               textAlign: 'justify',
-              lineHeight: 20, 
-              color:'black'
+              lineHeight: 20,
+              color: 'black'
               // Add line height for proper spacing
             },
             b: {
               fontWeight: 'bold',
               fontFamily: 'Arial',
-              color:'black' // Ensure bold style matches
+              color: 'black' // Ensure bold style matches
             },
           }}
         />
@@ -391,22 +332,72 @@ console.log("result businessdetails",result);
     );
   };
 
-  const StoryComponent = ({data}) => {
+  const StoryComponent = ({ data }) => {
     return (
       <View style={styles.storyMainContainer}>
         <Text style={styles.title7}>{data?.title}</Text>
         {data?.image && (
-          <Image style={styles.storyImage} source={{uri: data?.image}} />
+          <Image style={styles.storyImage} source={{ uri: data?.image }} />
         )}
         {data?.subTitle && (
-          <Text style={styles.description2}>{data?.subTitle}</Text>
+          // <Text style={styles.description2}>{data?.subTitle}</Text>
+
+          <RenderHTML
+            // contentWidth={width}
+            source={{
+              html: data?.subTitle,
+            }}
+            renderers={{
+              webview: WebView,
+            }}
+            // renderersProps={{
+            //   ul: {
+            //     ol: {marginLeft: 15, listStyleType: 'decimal'},
+            //     ul: {marginLeft: 15, listStyleType: 'disc'},
+            //   },
+            // }}
+            tagsStyles={{
+              li: {
+                fontSize: 14,
+                fontFamily: 'Arial',
+                // listStyleType: 'disc', // Ensure list dot shows up
+                lineHeight: 20,
+
+                color: 'black'// Increase line height for readability
+              },
+              span: {
+                fontFamily: 'Open Sans',
+                textAlign: 'justify',
+                lineHeight: 20,
+                color: 'black' // Uniform line height
+              },
+              p: {
+                fontFamily: 'Open Sans',
+                fontSize: 14,
+                textAlign: 'justify',
+                lineHeight: 20,
+                color: 'black'
+                // Add line height for proper spacing
+              },
+              b: {
+                //fontWeight: 'bold',
+                fontFamily: 'Arial',
+                color: 'black' // Ensure bold style matches
+              },
+              u: {
+                textDecorationLine: "underline",
+                fontFamily: "Arial",
+                color: "black",
+              },
+            }}
+          />
         )}
         {data?.topics?.map((topic, topicIndex) => {
           return (
-            <View key={topicIndex} style={{marginTop: normalize(10)}}>
+            <View key={topicIndex} style={{ marginTop: normalize(10) }}>
               <Text style={styles.title8}>{topic?.label}:</Text>
               {topic?.description && (
-                <Text style={[styles.description2, {marginTop: normalize(5)}]}>
+                <Text style={[styles.description2, { marginTop: normalize(5) }]}>
                   {topic?.description}
                 </Text>
               )}
@@ -419,7 +410,7 @@ console.log("result businessdetails",result);
 
   const CustomTooltip = () => (
     <ImageBackground source={Images.union} style={styles.tooltipContainer}>
-      <View style={{height: '65%', width: '100%'}}>
+      <View style={{ height: '65%', width: '100%' }}>
         <View
           style={{
             flexDirection: 'row',
@@ -449,7 +440,7 @@ console.log("result businessdetails",result);
                 height: normalize(16),
                 width: normalize(16),
                 resizeMode: 'contain',
-                transform: [{rotate: '180deg'}],
+                transform: [{ rotate: '180deg' }],
                 tintColor:
                   showLocationIndex === 1 ? Colors.santa_grey : Colors.dark,
               }}
@@ -527,30 +518,30 @@ console.log("result businessdetails",result);
       updateCoords(newCoords);
     }
   }, [showLocationIndex, businessInfo?.locations]);
-  const MapComponent = ({label, totalLocation, activeLocationIndex, data}) => {
-    console.log("data reward details",data);
+  const MapComponent = ({ label, totalLocation, activeLocationIndex, data }) => {
+    console.log("data reward details", data);
 
     const handlePress = () => {
       const phoneNumber = data?.details?.main_location?.business_phone;
-    
+
       if (!phoneNumber) {
         showMessage('Phone number not available');
         return;
       }
-    
+
       // Log the phone number for debugging
       console.log('Phone Number:', phoneNumber);
-    
+
       // Ensure the number is in the correct format
-      const sanitizedPhoneNumber = phoneNumber.replace(/[^0-9+]/g, ''); 
-    
+      const sanitizedPhoneNumber = phoneNumber.replace(/[^0-9+]/g, '');
+
       if (sanitizedPhoneNumber) {
         context.makePhoneCall(sanitizedPhoneNumber);
       } else {
         showMessage('Invalid phone number');
       }
     };
-    
+
     return (
       <View style={styles.mapContainer}>
         <View style={styles.mapLabelContainer}>
@@ -573,7 +564,7 @@ console.log("result businessdetails",result);
           }}>
           <MapView
             ref={mapRef}
-            style={{...StyleSheet.absoluteFill}}
+            style={{ ...StyleSheet.absoluteFill }}
             followsUserLocation={true}
             initialRegion={coords}
             showsCompass={false}
@@ -593,7 +584,7 @@ console.log("result businessdetails",result);
                   latitude: parseFloat(item.latitude),
                   longitude: parseFloat(item.longitude),
                 }}
-                anchor={{x: 0.5, y: 0.1}}>
+                anchor={{ x: 0.5, y: 0.1 }}>
                 <Image
                   source={Icons.location1}
                   style={{
@@ -662,7 +653,7 @@ console.log("result businessdetails",result);
     setOptions(prevArr =>
       prevArr.map(item => {
         if (item.id === itemId && type == item?.type) {
-          return {...item, is_added_wallet: newStatus, isActive: false};
+          return { ...item, is_added_wallet: newStatus, isActive: false };
         }
         return item;
       }),
@@ -675,83 +666,129 @@ console.log("result businessdetails",result);
   };
 
   const capitalizeFirstWord = (text) => {
-    if (!text) return ''; 
-    text = text.toLowerCase(); 
+    if (!text) return '';
+    text = text.toLowerCase();
     return text.charAt(0).toUpperCase() + text.slice(1);
   };
+
+  const handleShare = async () => {
+    try {
+      const uri = await viewShotRef.current.capture();
+      //const deepLink = `https://tinyurl.com/33uvs293?id=${id}&location=${locationId}`;
+      //const deepLink = `https://staging.gimmzi.com/?id=${id}&location=${locationId}`;
+      const deepLink = `https://staging.gimmzi.com/merchant/${id}?id=${id}&location=${locationId}`;
+      const shareOptions = {
+        url: uri,
+        type: "image/*",
+        message: `Check out ${businessInfo?.business_name} offers on Gimmzi: ${deepLink}`,
+      };
+      const result = await Share.open(shareOptions);
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          // Shared with activity type of result.activityType
+        } else {
+          // Shared
+        }
+      } else if (result.action === Share.dismissedAction) {
+        // Dismissed
+      }
+    } catch (error) {
+      console.log('Error sharing:', error.message);
+    }
+  };
+
+  const nonHeadquartersLocations = businessInfo?.locations?.filter(
+    location => location?.location_type !== "Headquarters"
+  ) || [];
 
   return (
     <View style={styles.container}>
       <StatusBar translucent backgroundColor={'transparent'} />
       <Loader visible={isLoading} />
+      <ViewShot style={{ flex: 1 }} ref={viewShotRef} options={{ format: 'jpg', quality: 0.9 }}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+          style={{ flex: 1, backgroundColor: Colors.white }}
+          contentContainerStyle={{
+            paddingBottom: isVisible.status ? normalize(100) : normalize(30),
+            backgroundColor: Colors.white,
+          }}>
+          {!isLoading && !_.isEmpty(businessInfo?.images) ? (
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        style={{flex: 1, backgroundColor: Colors.white}}
-        contentContainerStyle={{
-          paddingBottom: isVisible.status ? normalize(100) : normalize(30),
-          backgroundColor: Colors.white,
-        }}>
-        {!isLoading && !_.isEmpty(businessInfo?.images) ? (
-          <GridImageViewer
-            images={[
-              ...businessInfo?.images,
-              // ...businessInfo?.images?.slice(1),
-            ]}
-            marginTop={0}
-            height={normalize(280)}
-            width={'100%'}
-            borderRadius={0}
-            mWidth="88%"
-            mBackgroundColor="rgba(0,0,0,0.40)"
-            mBottom={normalize(18)}
-          />
-        ) : (
-          <View style={styles.v7}>
-            <Text style={styles.t1}>No Image found</Text>
-          </View>
-        )}
+            <GridImageViewer
+              images={[
+                ...businessInfo?.images,
+                // ...businessInfo?.images?.slice(1),
+              ]}
+              marginTop={0}
+              height={normalize(280)}
+              width={'100%'}
+              borderRadius={0}
+              mWidth="88%"
+              mBackgroundColor="rgba(0,0,0,0.40)"
+              mBottom={normalize(18)}
+            />
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => goBack()} style={styles.touch}>
-            <Image source={Icons.arrow_left2} style={styles.img} />
-          </TouchableOpacity>
-          <View style={{flexDirection: 'row'}}>
-            {[0].map(
-              (
-                item,
-                i, // 0, 1
-              ) => (
-                <TouchableOpacity
-                  key={i}
-                  onPress={async () => {
-                    if (i == 0) {
-                      // i == 1
-                      const result = await dispatch(
-                        addFavourite(businessInfo?.details?.id),
-                      );
-                      showMessage(result.message);
+          ) : (
+            <View style={styles.v7}>
+              <Text style={styles.t1}>No Image found</Text>
+            </View>
+          )}
 
-                      if (result.success) {
-                        setBusinessInfo(pre => ({
-                          ...pre,
-                          details: {
-                            ...pre?.details,
-                            is_favourite: !pre?.details?.is_favourite,
-                          },
-                        }));
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => goBack()} style={styles.touch}>
+              <Image source={Icons.arrow_left2} style={styles.img} />
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row' }}>
+              {[0, 1].map(
+                (
+                  item,
+                  i, // 0, 1
+                ) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={async () => {
+                      if (i == 0) {
+                        handleShare();
                       }
-                    }
-                  }}
-                  style={[
-                    styles.touch,
-                    {
-                      marginLeft: i == 0 ? normalize(12) : 0, // i == 1 ? normalize(12) : 0,
-                    },
-                  ]}>
-                  <Image
+                      else {
+                        // i == 1
+                        const result = await dispatch(
+                          addFavourite(businessInfo?.details?.id),
+                        );
+                        showMessage(result.message);
+
+                        if (result.success) {
+                          setBusinessInfo(pre => ({
+                            ...pre,
+                            details: {
+                              ...pre?.details,
+                              is_favourite: !pre?.details?.is_favourite,
+                            },
+                          }));
+                        }
+                      }
+                    }}
+                    style={[
+                      styles.touch,
+                      {
+                        // marginLeft: i == 0 ? normalize(12) : 0, 
+                        marginLeft: i == 1 ? normalize(10) : 0,
+                      },
+                    ]}>
+                    <Image
+                      source={
+                        i == 0
+                          ? Icons.share3
+                          : item?.is_favourite ?
+                            Icons.heart3
+                            : Icons.heart1
+                      }
+                      style={styles.img}
+                    />
+                    {/* <Image
                     source={
                       // i == 0
                       //   ? Icons.share3 :
@@ -760,142 +797,139 @@ console.log("result businessdetails",result);
                         : Icons.heart1
                     }
                     style={styles.img}
-                  />
-                </TouchableOpacity>
-              ),
-            )}
-          </View>
-        </View>
-
-        {!isLoading && (
-          <View style={styles.v1}>
-            <Text style={styles.title}>
-              {businessInfo?.details?.business_name}
-            </Text>
-            <View style={styles.v2}>
-              <Image source={Icons.location} style={styles.img1} />
-              <Text style={styles.title1}>
-                {`${businessInfo.locations?.length} ${
-                  businessInfo.locations?.length > 1 ? 'locations' : 'location'
-                }  `}
-                {<View style={styles.dot} />}
-                {` ${businessInfo.distance} mi`}
-              </Text>
+                  /> */}
+                  </TouchableOpacity>
+                ),
+              )}
             </View>
+          </View>
 
-            {options.map((item, index) => {
-              return (
-                <TouchableOpacity
-                  onPress={() => {
-                    let temp = options.map((it, i) => ({
-                      ...it,
-                      isActive: i == index ? !it?.isActive : false,
-                    }));
-                    setOptions(temp);
+          {!isLoading && (
+            <View style={styles.v1}>
+              <Text style={styles.title}>
+                {businessInfo?.details?.business_name}
+              </Text>
+              <View style={styles.v2}>
+                <Image source={Icons.location} style={styles.img1} />
+                <Text style={styles.title1}>
+                  {`${nonHeadquartersLocations.length} ${nonHeadquartersLocations.length > 1 ? 'locations' : 'location'
+                    }  `}
+                  {<View style={styles.dot} />}
+                  {` ${businessInfo.distance} mi`}
+                </Text>
+              </View>
 
-                    let d = temp.filter((itm, i) => itm.isActive == true);
-                    setIsVisible({
-                      selectedItem: !_.isEmpty(d) ? d[0] : [],
-                      status: !_.isEmpty(d),
-                    });
-                  }}
-                  key={index}
-                  style={[
-                    {
-                      borderWidth: normalize(item?.isActive ? 1.5 : 1),
-                      borderColor: item?.isActive
-                        ? Colors.ball_blue
-                        : Colors.dawn_pink,
-                    },
-                    styles.touch1,
-                  ]}>
-                  <View
+              {options.map((item, index) => {
+                return (
+                  <TouchableOpacity
+                    onPress={() => {
+                      let temp = options.map((it, i) => ({
+                        ...it,
+                        isActive: i == index ? !it?.isActive : false,
+                      }));
+                      setOptions(temp);
+
+                      let d = temp.filter((itm, i) => itm.isActive == true);
+                      setIsVisible({
+                        selectedItem: !_.isEmpty(d) ? d[0] : [],
+                        status: !_.isEmpty(d),
+                      });
+                    }}
+                    key={index}
                     style={[
                       {
+                        borderWidth: normalize(item?.isActive ? 1.5 : 1),
                         borderColor: item?.isActive
                           ? Colors.ball_blue
-                          : Colors.iron,
+                          : Colors.dawn_pink,
                       },
-                      styles.v3,
+                      styles.touch1,
                     ]}>
-                    {item?.isActive && <View style={styles.circle} />}
-                  </View>
-                  <View style={{flex: 1}}>
-                    <Text style={styles.title2}>
-                    {capitalizeFirstWord(item?.type == 'deal'
-                        ? item?.suggested_description
-                        : item?.program_name)}
-                         </Text>
-                    {item?.program_points || item?.point ? (
-                      <Text style={styles.title3}>
-                        {item?.type == 'deal'
-                          ? `${item?.point} points to redeem`
-                          : item?.program_points
-                          ? `Earn up to ${item?.program_points} loyalty points`
-                          : ''}
+                    <View
+                      style={[
+                        {
+                          borderColor: item?.isActive
+                            ? Colors.ball_blue
+                            : Colors.iron,
+                        },
+                        styles.v3,
+                      ]}>
+                      {item?.isActive && <View style={styles.circle} />}
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.title2}>
+                        {capitalizeFirstWord(item?.type == 'deal'
+                          ? item?.suggested_description
+                          : item?.program_name)}
                       </Text>
-                    ) : null}
-                  </View>
-                </TouchableOpacity>
-              );
+                      {item?.program_points || item?.point ? (
+                        <Text style={styles.title3}>
+                          {item?.type == 'deal'
+                            ? `${item?.point} points to redeem`
+                            : item?.program_points
+                              ? `Earn up to ${item?.program_points} loyalty points`
+                              : ''}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {!isLoading &&
+            businessInfo?.about?.map((topic, topicIndex) => {
+              return <Topic {...topic} key={topicIndex} />;
             })}
-          </View>
-        )}
 
-        {!isLoading &&
-          businessInfo?.about?.map((topic, topicIndex) => {
-            return <Topic {...topic} key={topicIndex} />;
-          })}
-
-        {!isLoading && !_.isEmpty(businessInfo?.locations) && (
-          <MapComponent
-            label={`${businessInfo?.details?.business_name}`}
-            totalLocation={businessInfo?.locations.length}
-            activeLocationIndex={showLocationIndex}
-            data={businessInfo}
-          />
-        )}
-
-        {!isLoading && <StoryComponent data={businessInfo?.business_story} />}
-
-        {!isLoading && (
-          <View style={styles.swipableMainContainer}>
-            <Text style={styles.title9}>
-              {!_.isEmpty(businessInfo?.locations)
-                ? `Other ${businessInfo?.details?.business_name} Locations`
-                : `More ${
-                    businessInfo?.details?.category?.category_name
-                      ? businessInfo?.details?.category?.category_name
-                      : ''
-                  }`}
-            </Text>
-            <FlatList
-              showsHorizontalScrollIndicator={false}
-              showsVerticalScrollIndicator={false}
-              style={{paddingVertical: normalize(16)}}
-              horizontal={true}
-              data={businessInfo?.locations}
-              renderItem={({item, index}) => (
-                <SwipeCard
-                  details={businessInfo?.details}
-                  index={index}
-                  item={item}
-                  key={index}
-                />
-              )}
+          {!isLoading && !_.isEmpty(businessInfo?.locations) && (
+            <MapComponent
+              label={`${businessInfo?.details?.business_name}`}
+              totalLocation={businessInfo?.locations.length}
+              activeLocationIndex={showLocationIndex}
+              data={businessInfo}
             />
-          </View>
-        )}
-      </ScrollView>
+          )}
 
+          {!isLoading && <StoryComponent data={businessInfo?.business_story} />}
+
+          {!isLoading && (
+            <View style={styles.swipableMainContainer}>
+              <Text style={styles.title9}>
+                {!_.isEmpty(businessInfo?.locations)
+                  ? `Other ${businessInfo?.details?.business_name} Locations`
+                  : `More ${businessInfo?.details?.category?.category_name
+                    ? businessInfo?.details?.category?.category_name
+                    : ''
+                  }`}
+              </Text>
+              <FlatList
+                showsHorizontalScrollIndicator={false}
+                showsVerticalScrollIndicator={false}
+                style={{ paddingVertical: normalize(16) }}
+                horizontal={true}
+                data={businessInfo?.locations}
+                renderItem={({ item, index }) => (
+                  <SwipeCard
+                    details={businessInfo?.details}
+                    index={index}
+                    item={item}
+                    key={index}
+                  />
+                )}
+              />
+            </View>
+          )}
+        </ScrollView>
+      </ViewShot>
       <CustomBottomView
         isVisible={isVisible.status}
         children={
           <View style={styles.v5}>
             <Button
-              title={`${
-                isVisible.selectedItem?.is_added_wallet ? 'Go' : 'Add'
-              } to Wallet`}
+              title={`${isVisible.selectedItem?.is_added_wallet ? 'Go' : 'Add'
+                } to Wallet`}
               width={'48%'}
               fontFamily={Fonts.InterMedium}
               fontSize={normalize(15)}
@@ -976,13 +1010,13 @@ console.log("result businessdetails",result);
                 : isVisible.selectedItem?.program_name}
             </Text>
             {isVisible.selectedItem?.program_points ||
-            isVisible.selectedItem?.point ? (
+              isVisible.selectedItem?.point ? (
               <Text style={styles.title15}>
                 {isVisible.selectedItem?.type == 'deal'
                   ? `${isVisible.selectedItem?.point} points to redeem`
                   : isVisible.selectedItem?.program_points
-                  ? `Earn up to ${isVisible.selectedItem?.program_points} loyalty points`
-                  : ''}
+                    ? `Earn up to ${isVisible.selectedItem?.program_points} loyalty points`
+                    : ''}
               </Text>
             ) : null}
 
@@ -1010,7 +1044,7 @@ console.log("result businessdetails",result);
               <CustomScrollView
                 style={styles.scroll}
                 content={`Gimmzi Smart Rewards Program\n\n1. Eligibility:\nParticipation in the Gimmzi Loyalty Rewards Program ("Program") is open to individuals who are 13 years of age or older. Businesses must meet the eligibility criteria specified by Gimmzi.\n\n2. Program Overview:\nThe Program allows members to earn and redeem points for rewards offered by participating businesses. Gimmzi reserves the right to modify or terminate the Program at any time.\n\n3. Earning Points:\nPoints are earned through qualifying purchases, referrals, or other activities as specified by Gimmzi or participating businesses. Points have no cash value and are non-transferable.\n\n4. Redeeming Rewards:\nMembers can redeem points for rewards offered by participating businesses. Gimmzi is not responsible for the quality, safety, legality, or any other aspect of the rewards provided by businesses.\n\n5. Account Termination:\nGimmzi reserves the right to terminate or suspend a member's account for any reason, including but not limited to violation of these terms, fraudulent activity, or misuse of the Program.\n\n6. Privacy:\nBy participating in the Program, members agree to the collection and use of personal information as outlined in Gimmzi's Privacy Policy.\n\n7. Changes to Terms:\nGimmzi reserves the right to modify these terms and conditions at any time. Changes will be communicated to members through the Gimmzi platform.\n\n8. Limitation of Liability:\nGimmzi and participating businesses are not liable for any direct, indirect, incidental, special, or consequential damages arising out of or related to the Program.\n\n9. Governing Law:\nThese terms and conditions are governed by and construed in accordance with the laws of the United States of America.\n\n10. Contact Information:\nFor questions or concerns regarding the Program, please contact legal@gimmzi.com.`}
-                // content={isVisible.selectedItem?.terms_conditions}
+              // content={isVisible.selectedItem?.terms_conditions}
               />
             </>
             {/* ) : null} */}

@@ -1,34 +1,34 @@
-import {View, Dimensions, FlatList} from 'react-native';
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import { View, Dimensions, FlatList } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import normalize from '../../../../utils/orientation/normalize';
-import {Colors} from '../../../../themes/Themes';
+import { Colors } from '../../../../themes/Themes';
 import PaginationDot from 'react-native-animated-pagination-dot';
 import StoreItem from './StoreItem';
-import {setIndexOfDeals} from '../../../../redux/slice/universe.slice';
-import {useAppDispatch, useAppSelector} from '../../../../redux';
+import { setIndexOfDeals } from '../../../../redux/slice/universe.slice';
+import { useAppDispatch, useAppSelector } from '../../../../redux';
 
-const {width} = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const RenderItems = ({
   buisnessItem,
-  onClickFavorite = () => {},
-  onClickWallet = () => {},
-  onScroll = () => {},
-  updateList=()=>{},
+  onClickFavorite = () => { },
+  onClickWallet = () => { },
+  onScroll = () => { },
+  updateList = () => { },
   scrollOffset = 0,
-  source={}
+  source = {}
 }) => {
   const indexOfItem = useAppSelector(state => state.universe.index);
   const dispatch = useAppDispatch();
   // const isFocused=useIsFocused();
   const flatRef = useRef(null);
   const [index, setIndex] = useState(0);
-// console.log("buisnessItem",buisnessItem);
+  // console.log("buisnessItem",buisnessItem);
 
   // Combine deals and loyalty items
   const arr = [
-    ...(buisnessItem?.deals || []).map(item => ({...item, type: 'deals'})),
-    ...(buisnessItem?.loyalty || []).map(item => ({...item, type: 'loyalty'})),
+    ...(buisnessItem?.deals || []).map(item => ({ ...item, type: 'deals' })),
+    ...(buisnessItem?.loyalty || []).map(item => ({ ...item, type: 'loyalty' })),
   ];
 
   // // Flag to track initial scroll to saved index
@@ -44,7 +44,7 @@ const RenderItems = ({
 
   React.useEffect(() => {
     if (flatRef.current) {
-      flatRef.current.scrollToOffset({offset: scrollOffset, animated: false});
+      flatRef.current.scrollToOffset({ offset: scrollOffset, animated: false });
     }
   }, [scrollOffset]);
 
@@ -64,30 +64,40 @@ const RenderItems = ({
 
   const keyExtractor = useCallback((_, index) => index.toString(), []);
 
+  const nonHeadquartersLocations = buisnessItem?.locations?.filter(
+    location => location?.location_type !== "Headquarters"
+  ) || [];
+
+  console.log('nonHeadquartersLocations', nonHeadquartersLocations)
+
   const renderItem = useCallback(
-    ({item}) => (
-      <View style={{width}}>
+    ({ item, index }) => (
+
+      <View style={{ width }}>
         <StoreItem
           item={item}
           buisness={{
             name: buisnessItem.business_name,
-            location: buisnessItem.main_location.full_location,
+            // location: buisnessItem.main_location.full_location,
+            location: nonHeadquartersLocations[index]?.full_location,
             distance: buisnessItem.distance,
             business_id: buisnessItem.id,
             is_favourite: item,
             main_location: buisnessItem.main_location,
             business_type: buisnessItem.business_type,
-            logoImage:buisnessItem?.logo_image
+            logoImage: buisnessItem?.logo_image
           }}
           data={arr}
           onPressFavorite={() => onClickFavorite(item)}
           onPressWallet={() => onClickWallet(item)}
-          // source={source}
+        // source={source}
         />
       </View>
     ),
     [arr, buisnessItem, onClickFavorite, onClickWallet],
   );
+
+  console.log('buisnessItem', buisnessItem)
 
   return (
     <View>

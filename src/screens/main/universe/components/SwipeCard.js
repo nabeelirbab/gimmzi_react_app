@@ -24,7 +24,7 @@ const SwipeCard = ({item, index, details}) => {
   };
 
   return (
-    <TouchableOpacity
+    item?.location_type !== "Headquarters" && <TouchableOpacity
       activeOpacity={0.5}
       onPress={() => {
         navigation.push('RewardDetails', {

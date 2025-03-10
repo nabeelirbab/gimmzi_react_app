@@ -1,11 +1,11 @@
-// import {BASE_URL} from '@env';
+import { BASE_URL } from '@env';
 import axios from 'axios';
 import NetInfo from '@react-native-community/netinfo';
 import Storage from '../stroage';
 
 export const instance = axios.create({
-  baseURL: process.env.BASE_URL,
-  // baseURL: BASE_URL,
+  baseURL: BASE_URL,
+  // baseURL: process.env.BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
