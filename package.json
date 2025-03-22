@@ -23,6 +23,7 @@
     "@reduxjs/toolkit": "^2.2.7",
     "@somesoap/react-native-image-palette": "^1.0.4",
     "axios": "^1.7.2",
+    "geolib": "^3.3.4",
     "moment": "^2.30.1",
     "patch-package": "^8.0.0",
     "prop-types": "^15.8.1",

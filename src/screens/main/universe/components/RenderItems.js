@@ -1,11 +1,13 @@
 import { View, Dimensions, FlatList } from 'react-native';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import normalize from '../../../../utils/orientation/normalize';
 import { Colors } from '../../../../themes/Themes';
 import PaginationDot from 'react-native-animated-pagination-dot';
 import StoreItem from './StoreItem';
 import { setIndexOfDeals } from '../../../../redux/slice/universe.slice';
 import { useAppDispatch, useAppSelector } from '../../../../redux';
+import Geolocation from "react-native-geolocation-service";
+import { getDistance } from "geolib";
 
 const { width } = Dimensions.get('window');
 
@@ -23,13 +25,49 @@ const RenderItems = ({
   // const isFocused=useIsFocused();
   const flatRef = useRef(null);
   const [index, setIndex] = useState(0);
+  const [location, setLocation] = useState(null);
+
+  // Get user location once
+  useEffect(() => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        setLocation(position.coords);
+      },
+      (error) => {
+        console.log("Error getting location:", error);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  }, []);
   // console.log("buisnessItem",buisnessItem);
 
   // Combine deals and loyalty items
-  const arr = [
-    ...(buisnessItem?.deals || []).map(item => ({ ...item, type: 'deals' })),
-    ...(buisnessItem?.loyalty || []).map(item => ({ ...item, type: 'loyalty' })),
-  ];
+  // const arr = [
+  //   ...(buisnessItem?.deals || []).map(item => ({ ...item, type: 'deals' })),
+  //   ...(buisnessItem?.loyalty || []).map(item => ({ ...item, type: 'loyalty' })),
+  // ];
+
+  // const sortedArr = arr?.sort((a, b) => a.distance - b.distance);
+
+
+  const sortedArray = useMemo(() => {
+    if (!buisnessItem || !location) return [];
+
+    const { latitude, longitude } = location;
+
+    const arr = [
+      ...(buisnessItem?.deals || []).map(item => ({ ...item, type: 'deals' })),
+      ...(buisnessItem?.loyalty || []).map(item => ({ ...item, type: 'loyalty' })),
+    ];
+
+
+    return arr?.sort((a, b) =>
+      getDistance({ latitude, longitude }, a) -
+      getDistance({ latitude, longitude }, b)
+    );
+  }, [buisnessItem, location]);
+
+  // console.log('sortedArr---->',sortedArr)
 
   // // Flag to track initial scroll to saved index
   // const initialScrollDone = useRef(false);
@@ -68,42 +106,39 @@ const RenderItems = ({
     location => location?.location_type !== "Headquarters"
   ) || [];
 
-  console.log('nonHeadquartersLocations', nonHeadquartersLocations)
-
   const renderItem = useCallback(
     ({ item, index }) => (
 
       <View style={{ width }}>
         <StoreItem
           item={item}
+          index={index}
           buisness={{
             name: buisnessItem.business_name,
-            // location: buisnessItem.main_location.full_location,
-            location: nonHeadquartersLocations[index]?.full_location,
+            location: buisnessItem.main_location.full_location,
             distance: buisnessItem.distance,
             business_id: buisnessItem.id,
             is_favourite: item,
             main_location: buisnessItem.main_location,
             business_type: buisnessItem.business_type,
-            logoImage: buisnessItem?.logo_image
+            logoImage: buisnessItem?.logo_image,
+            locations: buisnessItem?.locations
           }}
-          data={arr}
+          data={sortedArray}
           onPressFavorite={() => onClickFavorite(item)}
           onPressWallet={() => onClickWallet(item)}
         // source={source}
         />
       </View>
     ),
-    [arr, buisnessItem, onClickFavorite, onClickWallet],
+    [buisnessItem, onClickFavorite, onClickWallet],
   );
-
-  console.log('buisnessItem', buisnessItem)
 
   return (
     <View>
       <FlatList
         ref={flatRef}
-        data={arr}
+        data={sortedArray}
         renderItem={renderItem}
         horizontal
         pagingEnabled
@@ -117,7 +152,7 @@ const RenderItems = ({
         }
         scrollEventThrottle={16}
       />
-      {arr.length > 1 && (
+      {sortedArray.length > 1 && (
         <View
           style={{
             alignSelf: 'center',
@@ -126,7 +161,7 @@ const RenderItems = ({
           <PaginationDot
             activeDotColor={Colors.ball_blue}
             curPage={index}
-            maxPage={arr.length}
+            maxPage={sortedArray.length}
             sizeRatio={1.0}
             inactiveDotColor={Colors.black}
           />

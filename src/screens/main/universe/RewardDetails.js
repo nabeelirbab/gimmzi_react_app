@@ -61,7 +61,7 @@ import Share from 'react-native-share';
 
 const RewardDetails = ({ route }) => {
   const { id, locationId } = route?.params;
-  console.log('deep linking test', route?.params)
+  //console.log('deep linking test', route?.params)
 
   const context = useContext(GimmziContext);
   const mapRef = useRef();
@@ -102,7 +102,7 @@ const RewardDetails = ({ route }) => {
       getBusinessDetails(id, locationId);
     }, []),
   );
-  console.log('businessInfo--->', businessInfo)
+  // console.log('businessInfo--->', businessInfo)
 
   function removeHtmlTags(input) {
     return input?.replace(/<[^>]+>/g, '') || '';
@@ -119,7 +119,7 @@ const RewardDetails = ({ route }) => {
         location_id: _locationId,
       }),
     );
-    console.log("result businessdetails", result);
+    //console.log("result businessdetai", JSON.stringify(result));
 
     setIsLoading(false);
     if (!result?.success) {
@@ -169,7 +169,9 @@ const RewardDetails = ({ route }) => {
         subTitle: _details?.business_story,
         topics: [],
       };
-      const mergedLocation = [...result?.data?.all_locations, result?.data?.business_profiles?.main_location]
+      // const mergedLocation = [...result?.data?.all_locations, result?.data?.business_profiles?.main_location, result?.data?.main_location]
+      const mergedLocation = [...result?.data?.all_locations, result?.data?.main_location]
+      // console.log('mergedLocation--->',mergedLocation)
       let obj = {
         locations: mergedLocation,
         distance: _details?.selected_location_distance,
@@ -424,7 +426,8 @@ const RewardDetails = ({ route }) => {
               fontFamily: Fonts.InterMedium,
               fontSize: normalize(12),
             }}>
-            {`${showLocationIndex} to ${businessInfo?.locations.length}`}
+            {/* {`${showLocationIndex} to ${businessInfo?.locations.length}`} */}
+            {`${showLocationIndex} to ${nonHeadquartersLocations.length}`}
           </Text>
           <TouchableOpacity
             disabled={showLocationIndex === 1}
@@ -447,9 +450,12 @@ const RewardDetails = ({ route }) => {
             />
           </TouchableOpacity>
           <TouchableOpacity
-            disabled={showLocationIndex === businessInfo?.locations.length}
+            // disabled={showLocationIndex === businessInfo?.locations.length}
+            disabled={showLocationIndex === nonHeadquartersLocations.length}
             onPress={() => {
-              if (showLocationIndex < businessInfo?.locations.length) {
+
+              // if (showLocationIndex < businessInfo?.locations.length) {
+              if (showLocationIndex < nonHeadquartersLocations.length) {
                 setShowLocationIndex(showLocationIndex + 1);
               }
             }}
@@ -461,7 +467,8 @@ const RewardDetails = ({ route }) => {
                 width: normalize(16),
                 resizeMode: 'contain',
                 tintColor:
-                  showLocationIndex === businessInfo?.locations.length
+                  // showLocationIndex === businessInfo?.locations.length
+                  showLocationIndex === nonHeadquartersLocations.length
                     ? Colors.santa_grey
                     : Colors.dark,
               }}
@@ -477,7 +484,8 @@ const RewardDetails = ({ route }) => {
             width: '90%',
             alignSelf: 'center',
           }}>
-          {businessInfo?.locations[showLocationIndex - 1]?.address}
+          {/* {businessInfo?.locations[showLocationIndex - 1]?.address} */}
+           {nonHeadquartersLocations[showLocationIndex - 1]?.address}
         </Text>
       </View>
     </ImageBackground>
@@ -697,9 +705,12 @@ const RewardDetails = ({ route }) => {
     }
   };
 
+
   const nonHeadquartersLocations = businessInfo?.locations?.filter(
     location => location?.location_type !== "Headquarters"
   ) || [];
+
+  console.log('nonHeadquartersLocations', nonHeadquartersLocations)
 
   return (
     <View style={styles.container}>
@@ -886,7 +897,8 @@ const RewardDetails = ({ route }) => {
           {!isLoading && !_.isEmpty(businessInfo?.locations) && (
             <MapComponent
               label={`${businessInfo?.details?.business_name}`}
-              totalLocation={businessInfo?.locations.length}
+              // totalLocation={businessInfo?.locations.length}
+              totalLocation={nonHeadquartersLocations.length}
               activeLocationIndex={showLocationIndex}
               data={businessInfo}
             />

@@ -21,7 +21,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {Colors, Fonts, Icons, Images} from '../../../themes/Themes';
+import { Colors, Fonts, Icons, Images } from '../../../themes/Themes';
 import MyStatusBar from '../../../components/custom/MyStatusBar';
 import normalize from '../../../utils/orientation/normalize';
 import Header from '../../../components/importent/Header';
@@ -36,8 +36,8 @@ import {
   getUserDetails,
   updateCurrentLocation,
 } from '../../../utils/service/UserService';
-import {useAppDispatch, useAppSelector} from '../../../redux';
-import {GimmziContext} from '../../../utils/helper/GimmziBoundary';
+import { useAppDispatch, useAppSelector } from '../../../redux';
+import { GimmziContext } from '../../../utils/helper/GimmziBoundary';
 import {
   setUserAddress,
   setUserCurrentLocation,
@@ -50,17 +50,17 @@ import {
   getUniverseAllTypes,
   getUniverseBusinessList,
 } from '../../../utils/service/UniverseService';
-import {showMessage} from '../../../utils/helper/Toast';
+import { showMessage } from '../../../utils/helper/Toast';
 import RenderItems from './components/RenderItems';
 import {
   moderateScale,
   verticalScale,
 } from '../../../utils/orientation/scaleDimensions';
 import Picker from '../../../components/modal/Picker';
-import {decodeHTMLEntities} from '../../../utils/helper/Validation';
+import { decodeHTMLEntities } from '../../../utils/helper/Validation';
 import Loader from '../../../components/custom/Loader';
 import _ from 'lodash';
-import {navigateToMyHubScreen} from '../../../utils/helper/RootNaivgation';
+import { navigateToMyHubScreen } from '../../../utils/helper/RootNaivgation';
 import {
   addWallet,
   getEarnedLoyaltyPoints,
@@ -73,11 +73,13 @@ import {
   setSelectCategory,
 } from '../../../redux/slice/universe.slice';
 import queryString from 'query-string';
+import { getDistance } from "geolib";
+import Geolocation from "react-native-geolocation-service";
 
-const {height} = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const Home = props => {
-  const {navigation, route} = props;
+  const { navigation, route } = props;
   const context = useContext(GimmziContext);
   const dispatch = useAppDispatch();
   const isFocused = useIsFocused();
@@ -101,6 +103,7 @@ const Home = props => {
   const [location, setLocation] = useState([]);
   const isLoggedIn = authState.isLoggedIn;
   console.log('location', location);
+  const [sortedItems, setSortedItems] = useState([]);
 
   const handleDeepLink = (url) => {
     try {
@@ -184,13 +187,13 @@ const Home = props => {
     type: [],
     distance: [],
   });
-  console.log('data', data);
+  console.log('dataaaaa', JSON.stringify(data));
 
   const [isVisible, setIsVisible] = useState({
     status: false,
     type: '',
   });
-  
+
   const [isFilter, setFilter] = useState({
     category: '',
     categoryLabel: 'Category',
@@ -208,23 +211,53 @@ const Home = props => {
       if (Platform.OS === 'android') {
         StatusBar.setBackgroundColor(Colors.dark);
       }
-     if(isLoggedIn){
-      getProfile();
-      getWalletDetails();
-      getLoyaltyPoints();
-      getLastRedeem();
-      // getList();
-     
-     }
-     setTimeout(getLiveLocation, 2000);
+      if (isLoggedIn) {
+        getProfile();
+        getWalletDetails();
+        getLoyaltyPoints();
+        getLastRedeem();
+        // getList();
+
+      }
+      setTimeout(getLiveLocation, 2000);
       // dispatch(setIndexOfDeals(0));
     }, []),
   );
 
   useEffect(() => {
+    Geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        console.log("User Location:", latitude, longitude);
+
+        if (!data?.list || data.list.length === 0) {
+          console.log("No data available");
+          return;
+        }
+
+        // Corrected sorting logic
+        const sorted = [...data.list].sort((a, b) => {
+          return (
+            getDistance({ latitude, longitude }, a.main_location) -
+            getDistance({ latitude, longitude }, b.main_location)
+          );
+        });
+
+        console.log("Sorted Items:", sorted);
+        setSortedItems(sorted);
+      },
+      (error) => {
+        console.log("Error getting location:", error);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+    );
+  }, [data]);
+
+  useEffect(() => {
     if (isLocationUpdated && isLoggedIn) {
       getList();
-    }else{
+    } else {
       getListForGuest()
     }
   }, [isLocationUpdated]);
@@ -232,8 +265,8 @@ const Home = props => {
   const getListForGuest = useCallback(async (coords) => {
     console.log('Fetching data...');
     const obj = {
-      lat:coords? coords?.latitude: location?.latitude,
-      long:coords? coords?.longitude: location?.longitude,
+      lat: coords ? coords?.latitude : location?.latitude,
+      long: coords ? coords?.longitude : location?.longitude,
     };
     const result = await dispatch(getUniverseBusinessList(obj));
 
@@ -335,7 +368,7 @@ const Home = props => {
     [],
   );
 
-  
+
   const fetchData = useCallback(async (dispatchFn, dataKey) => {
     try {
       const result = await dispatch(dispatchFn());
@@ -407,7 +440,7 @@ const Home = props => {
               ...item,
               [type]: item[type].map(dealOrLoyaltyItem =>
                 dealOrLoyaltyItem.id === itemId
-                  ? {...dealOrLoyaltyItem, is_added_wallet: newStatus}
+                  ? { ...dealOrLoyaltyItem, is_added_wallet: newStatus }
                   : dealOrLoyaltyItem,
               ),
             };
@@ -419,9 +452,9 @@ const Home = props => {
     [],
   );
 
-  
+
   const renderItem = useCallback(
-    ({item, index}) =>
+    ({ item, index }) =>
       item?.type === 'ads' ? (
         <AdsItem item={item} />
       ) : (
@@ -429,7 +462,6 @@ const Home = props => {
           buisnessItem={item}
           setSelectedId={setSelectedId}
           onClickFavorite={async item => {
-            console.log(item, '++++++++++++item');
             setIsFav(item);
             let obj = {
               type: item?.type == 'deals' ? 'gimmziDeals' : 'loyaltyRewards',
@@ -448,9 +480,9 @@ const Home = props => {
 
             if (result.success) {
               // getList();
-              if(isFilter?.category||isFilter?.type||isFilter?.distance){
+              if (isFilter?.category || isFilter?.type || isFilter?.distance) {
                 setFilterApplied(prev => !prev);
-              }else {
+              } else {
                 getList();
               }
             }
@@ -492,7 +524,7 @@ const Home = props => {
           scrollOffset={scrollPositions.current[index] || 0}
         />
       ),
-    [data.list],
+    [data.list, sortedItems],
   );
 
   const FilterOptions = useCallback(
@@ -501,7 +533,7 @@ const Home = props => {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{paddingStart: '5%'}}>
+          contentContainerStyle={{ paddingStart: '5%' }}>
           {[
             'all',
             isFilter?.categoryLabel,
@@ -515,9 +547,9 @@ const Home = props => {
                 setSelectFilterIdx(index);
 
                 if (item !== 'all') {
-                  setIsVisible({status: true, type: types[index]});
+                  setIsVisible({ status: true, type: types[index] });
                 } else {
-                  setIsVisible(prev => ({...prev, status: false}));
+                  setIsVisible(prev => ({ ...prev, status: false }));
                   let obj = {
                     category: '',
                     categoryLabel: 'Category',
@@ -531,7 +563,7 @@ const Home = props => {
                   setSelectedDistance('')
                   // setIsLoading(true);
                   // setTimeout(() => {
-                    getList();
+                  getList();
                   //   setIsLoading(false);
                   // }, 800);
                   navigation.dispatch(CommonActions.navigate('Home', {}));
@@ -597,9 +629,9 @@ const Home = props => {
     if (_filter?.distance) {
       obj.distance_range = _filter?.distance;
     }
-    if(!isLoggedIn){
-      obj.lat=location?.latitude;
-      obj.long=location?.longitude;
+    if (!isLoggedIn) {
+      obj.lat = location?.latitude;
+      obj.long = location?.longitude;
     }
 
     const result = await dispatch(getUniverseBusinessList(obj));
@@ -662,60 +694,60 @@ const Home = props => {
   // }, [isFocused, route,universeState?.selectCategory]);
 
   useEffect(() => {
-    if(isFocused){
-    getUniverseFilterData();
-  
-    let updatedFilter = { ...isFilter };
-  
-    if (route?.params?.select === 'loyaltyRewards') {
-      updatedFilter = {
-        ...updatedFilter,
-        type: 'loyaltyRewards',
-        typeLabel: 'Loyalty Punch Cards',
-      };
-      setSelectFilterIdx(2);
-    }
-  
-    // Preserve category if selected from universeState
-    if (universeState?.selectCategory) {
-      setData(prevData => ({
-        ...prevData,
-        category: prevData.category?.map(item => ({
-          ...item,
-          isSelected: item?.id === universeState?.selectCategory?.id,
-        })),
-      }));
-  
-      updatedFilter = {
-        ...updatedFilter,
-        category: universeState?.selectCategory?.id,
-        categoryLabel: universeState?.selectCategory?.category_name
-        ,
-      };
-  
-      setSelectFilterIdx(1);
-    }
-  
-    // Preserve distance if selected
-    if (selectedDistance) {
-      updatedFilter = {
-        ...updatedFilter,
-        distance: selectedDistance,
-        distanceLabel: data?.distance?.find(item => item?.value === selectedDistance)?.text || 'Distance',
-      };
-      setSelectFilterIdx(3);
-    }
-  
-    setFilter(updatedFilter);
-    
-    console.log('Updated Filter:', updatedFilter);
-    setTimeout(() => getUniverseBusinessUseFilter(updatedFilter), 500);
-  }
+    if (isFocused) {
+      getUniverseFilterData();
 
-  }, [route,isFocused, universeState?.selectCategory, selectedDistance,filterApplied]);
-  
+      let updatedFilter = { ...isFilter };
 
-  const FilterItem = ({item, index, type}) => {
+      if (route?.params?.select === 'loyaltyRewards') {
+        updatedFilter = {
+          ...updatedFilter,
+          type: 'loyaltyRewards',
+          typeLabel: 'Loyalty Punch Cards',
+        };
+        setSelectFilterIdx(2);
+      }
+
+      // Preserve category if selected from universeState
+      if (universeState?.selectCategory) {
+        setData(prevData => ({
+          ...prevData,
+          category: prevData.category?.map(item => ({
+            ...item,
+            isSelected: item?.id === universeState?.selectCategory?.id,
+          })),
+        }));
+
+        updatedFilter = {
+          ...updatedFilter,
+          category: universeState?.selectCategory?.id,
+          categoryLabel: universeState?.selectCategory?.category_name
+          ,
+        };
+
+        setSelectFilterIdx(1);
+      }
+
+      // Preserve distance if selected
+      if (selectedDistance) {
+        updatedFilter = {
+          ...updatedFilter,
+          distance: selectedDistance,
+          distanceLabel: data?.distance?.find(item => item?.value === selectedDistance)?.text || 'Distance',
+        };
+        setSelectFilterIdx(3);
+      }
+
+      setFilter(updatedFilter);
+
+      console.log('Updated Filter:', updatedFilter);
+      setTimeout(() => getUniverseBusinessUseFilter(updatedFilter), 500);
+    }
+
+  }, [route, isFocused, universeState?.selectCategory, selectedDistance, filterApplied]);
+
+
+  const FilterItem = ({ item, index, type }) => {
     console.log('item FilterItem', item);
 
     return (
@@ -740,14 +772,14 @@ const Home = props => {
           type !== 'category'
             ? styles.v5
             : {
-                marginVertical: normalize(7),
-                // height: normalize(100),
-                width: '47.5%',
-                borderRadius: normalize(6),
-                borderColor: Colors.dawn_pink,
-                borderWidth: normalize(1),
-                padding: normalize(10),
-              },
+              marginVertical: normalize(7),
+              // height: normalize(100),
+              width: '47.5%',
+              borderRadius: normalize(6),
+              borderColor: Colors.dawn_pink,
+              borderWidth: normalize(1),
+              padding: normalize(10),
+            },
         ]}>
         {type == 'category' && (
           <View
@@ -762,7 +794,7 @@ const Home = props => {
               alignItems: 'center',
             }}>
             <Image
-              source={item?.icon_url ? {uri: item?.icon_url} : Icons.question}
+              source={item?.icon_url ? { uri: item?.icon_url } : Icons.question}
               style={{
                 resizeMode: 'contain',
                 height:
@@ -809,7 +841,8 @@ const Home = props => {
         <View style={styles.v2}>
           <FlatList
             ref={listRef}
-            data={data?.list}
+            // data={data?.list}
+            data={sortedItems}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             ListHeaderComponent={FilterOptions}
@@ -825,12 +858,12 @@ const Home = props => {
       <Picker
         isVisible={isVisible.status}
         onBackdropPress={() => {
-          setIsVisible(pre => ({...pre, status: false}));
+          setIsVisible(pre => ({ ...pre, status: false }));
         }}
         height={verticalScale(300)}
         isVisibleBar
         backdropOpacity={0.4}>
-        <View style={{flex: 1}}>
+        <View style={{ flex: 1 }}>
           <View style={styles.v6}>
             <Text style={styles.title}>{`Select ${isVisible.type}`}</Text>
             <TouchableOpacity
@@ -887,12 +920,12 @@ const Home = props => {
                 const _category = data?.category?.find(item => item?.isSelected);
                 const _type = data?.type?.find(item => item?.isSelected);
                 const _distance = data?.distance?.find(item => item?.isSelected);
-              
+
                 // Update selected distance in state
                 if (_distance) {
                   setSelectedDistance(_distance?.value);
                 }
-              
+
                 let newFilter = {
                   category: _category ? _category?.id : isFilter.category,
                   categoryLabel: _category ? _category?.category_name : isFilter.categoryLabel,
@@ -901,7 +934,7 @@ const Home = props => {
                   type: _type ? _type?.value : isFilter.type,
                   typeLabel: _type ? _type?.text : isFilter.typeLabel,
                 };
-              
+
                 let selectedFilters = [];
                 if (_category) {
                   selectedFilters.push('category');
@@ -915,20 +948,20 @@ const Home = props => {
                   selectedFilters.push('distance');
                   setSelectFilterIdx(3);
                 }
-                
+
                 setFilter(newFilter);
                 // setSelectFilterIdx(selectedIdx);
                 setIsVisible(prev => ({ ...prev, status: false }));
-              
+
                 console.log('Applied Filters:', newFilter);
-              
+
                 setTimeout(() => getUniverseBusinessUseFilter(newFilter), 1000);
-              
+
                 setTimeout(() => {
                   listRef.current?.scrollToOffset({ offset: 0, animated: true });
                 }, 1000);
               }}
-              
+
               style={styles.touch}>
               <Image source={Icons.tick2} style={styles.img} />
             </TouchableOpacity>
@@ -937,7 +970,7 @@ const Home = props => {
             <>
               {isVisible.type === 'category' ? (
                 <FlatList
-                  style={{flex: 1}}
+                  style={{ flex: 1 }}
                   showsVerticalScrollIndicator={false}
                   data={data[isVisible.type]}
                   numColumns={2}
@@ -951,7 +984,7 @@ const Home = props => {
                     width: '90%',
                     alignSelf: 'center',
                   }}
-                  renderItem={({item, index}) => (
+                  renderItem={({ item, index }) => (
                     <FilterItem
                       index={index}
                       item={item}
@@ -962,9 +995,9 @@ const Home = props => {
                 />
               ) : (
                 <ScrollView
-                  style={{flex: 1}}
+                  style={{ flex: 1 }}
                   showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{paddingBottom: normalize(30)}}>
+                  contentContainerStyle={{ paddingBottom: normalize(30) }}>
                   <View style={styles.v4}>
                     {data[isVisible.type]?.map((item, index) => {
                       return (

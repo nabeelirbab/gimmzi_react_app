@@ -4,7 +4,7 @@ import NetInfo from '@react-native-community/netinfo';
 import Storage from '../stroage';
 
 export const instance = axios.create({
-  baseURL: BASE_URL,
+  baseURL: "http://staging1.gimmzi.com",
   // baseURL: process.env.BASE_URL,
   headers: {
     'Content-Type': 'application/json',
@@ -18,7 +18,7 @@ const refreshToken = async () => {
     return null;
   }
 
-  console.log('Refresh Token ...........');
+  console.log('Refresh Token ...........'); 
 
   // Uncomment and implement token refresh logic as needed
   // try {
