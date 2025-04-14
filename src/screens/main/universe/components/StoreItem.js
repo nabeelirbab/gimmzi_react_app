@@ -226,8 +226,8 @@ const StoreItem = ({
               <View style={styles.v3}>
                 <Image source={Icons.location_point} style={styles.locationImg} />
                 <Text numberOfLines={1} style={styles.location}>
-                  {/* {item?.address} */}
-                  {buisness?.location}
+                  {item?.address}
+                  {/* {buisness?.location} */}
                 </Text>
               </View>
             )}
@@ -235,7 +235,7 @@ const StoreItem = ({
             <View style={[styles.v4, { marginLeft: normalize(8) }]}>
               <Image source={Icons.distance} style={styles.distanceImg} />
               <Text numberOfLines={1} style={styles.distance}>
-                {`${item?.distance ? item?.distance : 0} mi`}
+                {`${item?.distance ? item?.distance?.toFixed(2) : 0} mi`}
                 {/* {`${buisness?.distance ? buisness?.distance : 0} mi`} */}
               </Text>
             </View>
