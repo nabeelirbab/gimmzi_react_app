@@ -127,7 +127,7 @@ const MapFullViews = ({
         markerRef.current.animateMarkerToCoordinate(newCoordinate, 7000);
       }
     } else {
-      coordinate.timing(newCoordinate).start();
+      coordinate?.timing(newCoordinate).start();
     }
   };
 

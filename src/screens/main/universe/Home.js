@@ -73,8 +73,6 @@ import {
   setSelectCategory,
 } from '../../../redux/slice/universe.slice';
 import queryString from 'query-string';
-import { getDistance } from "geolib";
-import Geolocation from "react-native-geolocation-service";
 
 const { height } = Dimensions.get('window');
 
@@ -103,7 +101,6 @@ const Home = props => {
   const [location, setLocation] = useState([]);
   const isLoggedIn = authState.isLoggedIn;
   console.log('location', location);
-  const [sortedItems, setSortedItems] = useState([]);
 
   const handleDeepLink = (url) => {
     try {
@@ -152,6 +149,8 @@ const Home = props => {
   //     getList();
   //   }, 800);
   // }, []);
+
+
 
   useEffect(() => {
     if (universeState) {
@@ -224,35 +223,6 @@ const Home = props => {
     }, []),
   );
 
-  useEffect(() => {
-    Geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-
-        console.log("User Location:", latitude, longitude);
-
-        if (!data?.list || data.list.length === 0) {
-          console.log("No data available");
-          return;
-        }
-
-        // Corrected sorting logic
-        const sorted = [...data.list].sort((a, b) => {
-          return (
-            getDistance({ latitude, longitude }, a.main_location) -
-            getDistance({ latitude, longitude }, b.main_location)
-          );
-        });
-
-        console.log("Sorted Items:", sorted);
-        setSortedItems(sorted);
-      },
-      (error) => {
-        console.log("Error getting location:", error);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
-    );
-  }, [data]);
 
   useEffect(() => {
     if (isLocationUpdated && isLoggedIn) {
@@ -524,7 +494,7 @@ const Home = props => {
           scrollOffset={scrollPositions.current[index] || 0}
         />
       ),
-    [data.list, sortedItems],
+    [data.list],
   );
 
   const FilterOptions = useCallback(
@@ -841,8 +811,7 @@ const Home = props => {
         <View style={styles.v2}>
           <FlatList
             ref={listRef}
-            // data={data?.list}
-            data={sortedItems}
+            data={data?.list}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
             ListHeaderComponent={FilterOptions}
